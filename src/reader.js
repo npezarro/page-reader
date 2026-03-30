@@ -10,6 +10,7 @@ import { analyzeSignals } from './signals.js';
  * @param {number} options.wait - Extra settle time in ms after networkidle (default 2000)
  * @param {number} options.timeout - Navigation timeout in ms (default 30000)
  * @param {boolean} options.screenshot - Capture a screenshot as base64
+ * @param {boolean} options.stealth - Stealth mode: bypass bot detection
  * @returns {Promise<object>} Structured page data
  */
 export async function readPage(url, options = {}) {
@@ -17,6 +18,7 @@ export async function readPage(url, options = {}) {
     wait = 2000,
     timeout = 30000,
     screenshot = false,
+    stealth = false,
   } = options;
 
   const startTime = Date.now();
@@ -24,19 +26,41 @@ export async function readPage(url, options = {}) {
 
   try {
     browser = await chromium.launch({ headless: true });
-    const context = await browser.newContext({
+
+    const contextOptions = {
       viewport: { width: 1280, height: 800 },
       userAgent:
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-    });
+    };
+
+    if (stealth) {
+      // Randomize viewport slightly to avoid fingerprinting
+      contextOptions.viewport = {
+        width: 1280 + Math.floor(Math.random() * 40),
+        height: 800 + Math.floor(Math.random() * 40),
+      };
+      contextOptions.locale = 'en-US';
+      contextOptions.timezoneId = 'America/Los_Angeles';
+    }
+
+    const context = await browser.newContext(contextOptions);
+
+    if (stealth) {
+      // Remove navigator.webdriver flag that reveals automation
+      await context.addInitScript(() => {
+        Object.defineProperty(navigator, 'webdriver', { get: () => false });
+      });
+    }
 
     const page = await context.newPage();
 
-    // Navigate
+    // Navigate — stealth uses domcontentloaded to avoid waiting on
+    // analytics/tracking requests that may never resolve when blocked
+    const waitUntil = stealth ? 'domcontentloaded' : 'networkidle';
     let response;
     try {
       response = await page.goto(url, {
-        waitUntil: 'networkidle',
+        waitUntil,
         timeout,
       });
     } catch (err) {

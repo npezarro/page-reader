@@ -13,6 +13,7 @@ program
   .option('--screenshot', 'Include a base64 screenshot in output')
   .option('--text-only', 'Output only the visible text, no JSON')
   .option('--compact', 'Compact JSON output (no pretty-print)')
+  .option('--stealth', 'Stealth mode: bypass bot detection (uses domcontentloaded, randomized fingerprint)')
   .action(async (url, opts) => {
     try {
       // Ensure URL has protocol
@@ -24,6 +25,7 @@ program
         wait: parseInt(opts.wait, 10),
         timeout: parseInt(opts.timeout, 10),
         screenshot: !!opts.screenshot,
+        stealth: !!opts.stealth,
       });
 
       if (opts.textOnly) {
