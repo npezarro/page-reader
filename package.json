@@ -8,7 +8,8 @@
   },
   "scripts": {
     "start": "node src/index.js",
-    "build": "echo 'No build step required'"
+    "build": "echo 'No build step required'",
+    "test": "node --test 'test/**/*.test.js'"
   },
   "dependencies": {
     "commander": "^14.0.0",
