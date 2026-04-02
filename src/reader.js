@@ -64,7 +64,7 @@ export async function readPage(url, options = {}) {
         timeout,
       });
     } catch (err) {
-      if (err.message.includes('timeout')) {
+      if (err.message.toLowerCase().includes('timeout')) {
         // Page didn't fully settle but may still have content — continue
         response = null;
       } else {
