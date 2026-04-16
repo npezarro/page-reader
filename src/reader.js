@@ -83,7 +83,7 @@ export async function readPage(url, options = {}) {
     const httpStatus = response ? response.status() : null;
 
     // Run extraction in page context
-    const extracted = await page.evaluate(extractPageDataStr);
+    const extracted = await page.evaluate(extractPageData);
 
     // Analyze signals
     const signals = analyzeSignals(extracted);
@@ -127,59 +127,3 @@ export async function readPage(url, options = {}) {
   }
 }
 
-// Inline the extractor function as a string for page.evaluate()
-// We can't pass module functions directly into page context.
-const extractPageDataStr = `(() => {
-  const getMeta = (name) => {
-    const el =
-      document.querySelector('meta[name="' + name + '"]') ||
-      document.querySelector('meta[property="' + name + '"]');
-    return el ? el.getAttribute('content') : null;
-  };
-
-  const title = document.title || '';
-
-  const meta = {
-    description: getMeta('description'),
-    keywords: getMeta('keywords'),
-    author: getMeta('author'),
-    robots: getMeta('robots'),
-  };
-
-  const ogData = {
-    title: getMeta('og:title'),
-    description: getMeta('og:description'),
-    image: getMeta('og:image'),
-    url: getMeta('og:url'),
-    type: getMeta('og:type'),
-    siteName: getMeta('og:site_name'),
-  };
-
-  const text = document.body.innerText || '';
-
-  const links = Array.from(document.querySelectorAll('a[href]'))
-    .map((a) => ({
-      text: a.innerText.trim().slice(0, 200),
-      href: a.href,
-    }))
-    .filter((l) => l.text && l.href)
-    .slice(0, 200);
-
-  const jsonLd = Array.from(
-    document.querySelectorAll('script[type="application/ld+json"]')
-  )
-    .map((el) => {
-      try { return JSON.parse(el.textContent); }
-      catch { return null; }
-    })
-    .filter(Boolean);
-
-  const hasPasswordField = document.querySelectorAll('input[type="password"]').length > 0;
-
-  const hasCaptcha =
-    document.querySelectorAll(
-      'iframe[src*="recaptcha"], iframe[src*="hcaptcha"], iframe[src*="captcha"]'
-    ).length > 0;
-
-  return { title, meta, ogData, text, links, jsonLd, hasPasswordField, hasCaptcha };
-})()`;
