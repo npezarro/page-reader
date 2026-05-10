@@ -74,6 +74,29 @@ export async function readPage(url, options = {}) {
 
     const loadTime = Date.now() - startTime;
 
+    // Cloudflare challenge detection and resolution
+    const cfMitigated = response?.headers()?.['cf-mitigated'];
+    if (cfMitigated === 'challenge' || (response && response.status() === 403)) {
+      // Wait for CF challenge to auto-resolve (up to 12s)
+      try {
+        await page.waitForFunction(
+          () => {
+            const text = document.body?.innerText || '';
+            // Content appeared beyond the challenge spinner
+            return (
+              text.length > 200 ||
+              text.includes('Apply') ||
+              text.includes('404') ||
+              text.includes('not found')
+            );
+          },
+          { timeout: 12000 }
+        );
+      } catch {
+        // Challenge didn't resolve; continue with whatever we have
+      }
+    }
+
     // Extra settle wait for SPAs that load content after networkidle
     if (wait > 0) {
       await page.waitForTimeout(wait);
