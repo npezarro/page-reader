@@ -21,6 +21,12 @@ program
         url = 'https://' + url;
       }
 
+      // Validate scheme (prevent SSRF via file://, ftp://, etc.)
+      const parsed = new URL(url);
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+        throw new Error(`Blocked scheme "${parsed.protocol}" — only http: and https: are allowed`);
+      }
+
       const result = await readPage(url, {
         wait: parseInt(opts.wait, 10),
         timeout: parseInt(opts.timeout, 10),
