@@ -32,7 +32,7 @@ export function extractPageData() {
   };
 
   // Visible text (skip hidden elements, scripts, styles)
-  const text = document.body.innerText || '';
+  const text = document.body ? document.body.innerText || '' : '';
 
   // Links with text
   const links = Array.from(document.querySelectorAll('a[href]'))

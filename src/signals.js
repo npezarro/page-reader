@@ -44,7 +44,11 @@ export function analyzeSignals(extracted) {
 
   // Also check JSON-LD for job posting status
   if (!jobClosed && jsonLd) {
-    for (const ld of jsonLd) {
+    // Flatten any @graph arrays so items are checked individually
+    const flatLd = jsonLd.flatMap((ld) =>
+      Array.isArray(ld['@graph']) ? ld['@graph'] : [ld]
+    );
+    for (const ld of flatLd) {
       if (ld['@type'] === 'JobPosting') {
         if (ld.validThrough) {
           const expires = new Date(ld.validThrough);

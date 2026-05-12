@@ -92,8 +92,21 @@ export async function readPage(url, options = {}) {
     let status = 'ok';
     if (httpStatus && httpStatus >= 400) {
       status = 'error';
-    } else if (finalUrl !== url && new URL(finalUrl).pathname !== new URL(url).pathname) {
-      status = 'redirect';
+    } else {
+      // Normalize both URLs before comparing: strip trailing slashes, coerce to https
+      const normalize = (u) => {
+        try {
+          const parsed = new URL(u);
+          parsed.protocol = 'https:';
+          parsed.pathname = parsed.pathname.replace(/\/+$/, '') || '/';
+          return parsed.href;
+        } catch {
+          return u;
+        }
+      };
+      if (normalize(finalUrl) !== normalize(url)) {
+        status = 'redirect';
+      }
     }
 
     // Screenshot if requested
