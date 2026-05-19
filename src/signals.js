@@ -16,6 +16,11 @@ const CLOSED_PATTERNS = [
   /application.{0,20}(closed|deadline.{0,10}passed)/i,
   /we('re| are) no longer hiring/i,
   /this opportunity (has|is) (closed|no longer)/i,
+  /job not found/i,
+  /couldn.t find that page/i,
+  /missing page/i,
+  /page you requested could not be found/i,
+  /this page couldn.t load/i,
 ];
 
 const LOGIN_PATTERNS = [

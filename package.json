@@ -9,11 +9,17 @@
   "scripts": {
     "start": "node src/index.js",
     "build": "echo 'No build step required'",
+    "lint": "eslint .",
     "test": "node --test test/*.test.js"
   },
   "dependencies": {
     "commander": "^14.0.0",
     "playwright": "^1.52.0",
     "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.2.1",
+    "globals": "^17.5.0"
   }
 }
