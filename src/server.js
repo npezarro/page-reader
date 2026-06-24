@@ -6,7 +6,55 @@ import { isInternalHost } from './host-guard.js';
 
 const PORT = process.env.PORT || 3092;
 const MAX_CONCURRENT = 2;
+const BLOCK_WEBHOOK = process.env.DISCORD_BLOCK_WEBHOOK || '';
+const BLOCK_ALERT_COOLDOWN_MS = 60 * 60 * 1000;
 let active = 0;
+
+const BLOCK_PATTERNS = [
+  /to discuss automated access to amazon data/i,
+  /enter the characters you see below/i,
+  /robot or human/i,
+  /sorry.{0,40}we just need to make sure you're not a robot/i,
+  /access denied.{0,60}you don't have permission/i,
+  /pardon (our|the) interruption/i,
+  /are you a robot/i,
+  /\bblocked by perimeter/i,
+  /security check.{0,40}cloudflare/i,
+];
+
+const lastAlertByDomain = new Map();
+
+function detectBlock(text) {
+  if (!text || text.length < 200) {
+    return text && text.length < 200 ? 'short_body' : null;
+  }
+  for (const pattern of BLOCK_PATTERNS) {
+    if (pattern.test(text)) return pattern.source.slice(0, 60);
+  }
+  return null;
+}
+
+async function alertBlock(targetUrl, reason) {
+  let domain;
+  try { domain = new URL(targetUrl).hostname.replace(/^www\./, ''); } catch { domain = 'unknown'; }
+  console.error(`[page-reader BLOCK_DETECTED] domain=${domain} reason="${reason}" url=${targetUrl}`);
+  if (!BLOCK_WEBHOOK) return;
+  const now = Date.now();
+  const last = lastAlertByDomain.get(domain) || 0;
+  if (now - last < BLOCK_ALERT_COOLDOWN_MS) return;
+  lastAlertByDomain.set(domain, now);
+  try {
+    await fetch(BLOCK_WEBHOOK, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        content: `:rotating_light: **page-reader blocked** on \`${domain}\`\nreason: ${reason}\nurl: <${targetUrl}>\nWSL residential IP may have been flagged. Consider rotation/proxy if persistent.`,
+      }),
+    });
+  } catch (err) {
+    console.error(`[page-reader alert failed] ${err.message}`);
+  }
+}
 
 const server = http.createServer(async (req, res) => {
   if (req.method === 'GET' && req.url === '/health') {
@@ -62,6 +110,8 @@ const server = http.createServer(async (req, res) => {
 
   try {
     const result = await readPage(url, { wait: 2000, timeout, stealth, screenshot: false });
+    const blockReason = detectBlock(result.text);
+    if (blockReason) alertBlock(url, blockReason);
     res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
     res.end(result.text);
   } catch (err) {
