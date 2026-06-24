@@ -2,6 +2,7 @@
 
 import http from 'http';
 import { readPage } from './reader.js';
+import { isInternalHost } from './host-guard.js';
 
 const PORT = process.env.PORT || 3092;
 const MAX_CONCURRENT = 2;
@@ -37,11 +38,8 @@ const server = http.createServer(async (req, res) => {
       res.end(JSON.stringify({ error: 'Only http/https URLs allowed' }));
       return;
     }
-    // Block internal networks
-    const host = parsed.hostname;
-    if (host === 'localhost' || host === '127.0.0.1' || host === '::1' ||
-        host.startsWith('10.') || host.startsWith('192.168.') || host.startsWith('172.') ||
-        host.endsWith('.internal') || host.endsWith('.local')) {
+    // Block internal networks (loopback, RFC1918, link-local incl. cloud metadata, etc.)
+    if (isInternalHost(parsed.hostname)) {
       res.writeHead(403, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'Internal URLs blocked' }));
       return;
