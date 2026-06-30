@@ -14,6 +14,7 @@ program
   .option('--text-only', 'Output only the visible text, no JSON')
   .option('--compact', 'Compact JSON output (no pretty-print)')
   .option('--stealth', 'Stealth mode: bypass bot detection (uses domcontentloaded, randomized fingerprint)')
+  .option('--storage-state <path>', 'Path to a Playwright storageState JSON (cookies + localStorage) for reading login-walled pages without a live human browser')
   .action(async (url, opts) => {
     try {
       // Ensure URL has protocol
@@ -32,6 +33,7 @@ program
         timeout: parseInt(opts.timeout, 10),
         screenshot: !!opts.screenshot,
         stealth: !!opts.stealth,
+        storageState: opts.storageState || undefined,
       });
 
       if (opts.textOnly) {
