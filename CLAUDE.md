@@ -59,6 +59,7 @@ All proxy requests pass through `isInternalHost()` before fetching.
 - Discord bot — pre-fetches URLs in messages, 3 URLs max, 6000 char each
 - Job scraper — URL liveness detection (escalation path after curl + HTML marker checks)
 - NLL hunter — fetches JS-rendered Amex pages
+- employ link-check — `src/lib/link-check.ts` Tier 3 spawns the CLI to verify job-listing liveness on Cloudflare/SPA pages; uses `--storage-state` (via `PAGE_READER_STORAGE_STATE` env var) for login-walled pages. VM clone (`~/page-reader/`) must be kept current.
 - Interactive sessions — `node ~/repos/page-reader/src/index.js --text-only <url>` (on VM: `~/page-reader/`)
 
 ## Testing
