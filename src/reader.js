@@ -1,3 +1,4 @@
+import fs from 'node:fs/promises';
 import { chromium } from 'playwright';
 import { extractPageData } from './extractor.js';
 import { analyzeSignals } from './signals.js';
@@ -11,6 +12,9 @@ import { analyzeSignals } from './signals.js';
  * @param {number} options.timeout - Navigation timeout in ms (default 30000)
  * @param {boolean} options.screenshot - Capture a screenshot as base64
  * @param {boolean} options.stealth - Stealth mode: bypass bot detection
+ * @param {string} options.storageState - Path to a Playwright storageState JSON
+ *   (cookies + localStorage) so a headless browser can read login-walled pages
+ *   without a live human browser. Missing/invalid file is ignored (anonymous).
  * @returns {Promise<object>} Structured page data
  */
 export async function readPage(url, options = {}) {
@@ -19,6 +23,7 @@ export async function readPage(url, options = {}) {
     timeout = 30000,
     screenshot = false,
     stealth = false,
+    storageState = undefined,
   } = options;
 
   const startTime = Date.now();
@@ -32,6 +37,17 @@ export async function readPage(url, options = {}) {
       userAgent:
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
     };
+
+    // Authenticated session for login-walled pages. Tolerate a missing/unreadable
+    // file: fall back to an anonymous context rather than failing the read.
+    if (storageState) {
+      try {
+        await fs.access(storageState);
+        contextOptions.storageState = storageState;
+      } catch {
+        /* no session file -> anonymous */
+      }
+    }
 
     if (stealth) {
       // Randomize viewport slightly to avoid fingerprinting
