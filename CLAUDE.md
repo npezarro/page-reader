@@ -27,15 +27,18 @@ No build step. ES modules throughout.
 node src/index.js <url>
   --text-only    Print visible text only (no JSON)
   --screenshot   Include base64 screenshot in JSON output
-  --stealth      Bypass bot detection (randomized fingerprint, domcontentloaded)
-  --wait <ms>    Extra settle time after networkidle (default: 2000)
-  --timeout <ms> Navigation timeout (default: 30000)
-  --compact      Compact JSON output
+  --stealth                Bypass bot detection (randomized fingerprint, domcontentloaded)
+  --storage-state <path>  Path to a Playwright storageState JSON (cookies + localStorage) for reading login-walled pages without a live browser. Missing/unreadable file is silently ignored (falls back to anonymous).
+  --wait <ms>             Extra settle time after networkidle (default: 2000)
+  --timeout <ms>          Navigation timeout (default: 30000)
+  --compact               Compact JSON output
 ```
 
 ## HTTP Proxy Server (`src/server.js`)
 
 Runs on port 3092. Accepts `GET /fetch?url=<url>` and proxies the request through the headless browser. `GET /health` returns `{"status":"ok","active":<n>}`. Concurrency cap: 2 simultaneous fetches.
+
+**Block detection:** Every response body is scanned for bot-block signatures (Amazon CAPTCHA, Cloudflare, Distil, Imperva, generic robot-check). On detection, logs `[page-reader BLOCK_DETECTED]` to stderr. If `DISCORD_BLOCK_WEBHOOK` is set (via gitignored `.env`), posts a Discord alert rate-limited to one per domain per hour.
 
 ## SSRF Guard (`src/host-guard.js`)
 
