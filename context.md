@@ -1,6 +1,7 @@
 # context.md
 
 ## Last Updated
+2026-06-30 — Added `--storage-state` (Playwright storageState JSON) for authenticated headless reads of login-walled pages. The **VM clone (`~/page-reader/`) is now current and actively used**: employ's `src/lib/link-check.ts` Tier 3 spawns the CLI to verify job-listing liveness (Cloudflare/SPA pages), with optional `PAGE_READER_STORAGE_STATE` for gated pages.
 2026-06-05 — Added HTTP-level bot-block detection + Discord webhook alert in `src/server.js`. Defers IP rotation work until WSL residential IP actually gets noticed.
 
 ## Current State
@@ -11,7 +12,7 @@
 
 ## Open Work
 - PR #13 (`claude/learnings-629-docs`) has scope creep: originally a docs PR, now also contains the block-detection commit. Either rename or split before merge.
-- Remote VM mirror at `~/page-reader/` is stale (April, no server.js, no host-guard, no stealth). Currently unused — remote apps don't call into page-reader yet. Leave stale or sync; no impact today.
+- Remote VM clone at `~/page-reader/` is now CURRENT (pulled 2026-06-30, master with `--storage-state`) and IS called into: employ link-check Tier 3 spawns the CLI. Keep it pulled forward on future page-reader changes.
 - No automated regression test for the Amazon stealth bypass. If Amazon updates their detection, page-reader could silently start returning CAPTCHA bodies. Block-detection alert is the canary.
 
 ## Environment Notes
