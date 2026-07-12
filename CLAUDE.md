@@ -76,3 +76,22 @@ All proxy requests pass through `isInternalHost()` before fetching.
 - **Pin Node.js to 22 in CI** (current LTS). Don't use `node-version: 'lts/*'` — Node 20 EOL 2026-04-30.
 - **Test glob quoting on GitHub Actions:** Single-quoted globs don't expand. Use `test/*.test.js` flat glob.
 - **`package-lock.json` must be committed for CI.** Required for `npm ci` + `cache: npm`.
+
+### Deployment (page-reader-proxy)
+
+The HTTP proxy server runs on the VM under PM2 as `page-reader-proxy` (port 3092, `ecosystem.config.cjs`). The VM clone lives at `~/page-reader/`; deploying means updating that clone and restarting the process. Building/passing CI is not deploying — "it built clean" is not "it works."
+
+**Pre-deploy checklist:**
+1. All changes committed and pushed.
+2. Tests pass (`npm test`) and lint is clean (`npm run lint`).
+3. Dependencies are locked (`package-lock.json` committed). **If `package.json` or `package-lock.json` changed, run `npm install` on the VM target before restarting** — missing this causes crash loops from missing modules.
+4. No secrets exposed. The local `.env` holding `DISCORD_BLOCK_WEBHOOK` is gitignored; never commit it.
+
+**Deploy:** Route PM2-service deploys through the `deploy` skill rather than ad-hoc `ssh + pm2 restart`. The deploy is: `git pull` on the VM clone, `npm install` if dependencies changed, then `pm2 restart page-reader-proxy`.
+
+**Post-deploy verification (run within 30 seconds):**
+1. `pm2 show page-reader-proxy` — confirm status is `online`, uptime climbing, restart count not spiking.
+2. `curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:3092/health` — confirm HTTP 200 (`{"status":"ok",...}`).
+3. `pm2 logs page-reader-proxy --lines 20` — scan for errors, uncaught exceptions, or crash loops in the first 30 seconds.
+4. **Deploy after every change** to the deployed proxy; don't accumulate commits without deploying. If you intentionally batch, note the pending deploy in `context.md`.
+5. If any check fails, **do not move on** — diagnose and fix before declaring the deploy complete.
