@@ -95,3 +95,11 @@ The HTTP proxy server runs on the VM under PM2 as `page-reader-proxy` (port 3092
 3. `pm2 logs page-reader-proxy --lines 20` — scan for errors, uncaught exceptions, or crash loops in the first 30 seconds.
 4. **Deploy after every change** to the deployed proxy; don't accumulate commits without deploying. If you intentionally batch, note the pending deploy in `context.md`.
 5. If any check fails, **do not move on** — diagnose and fix before declaring the deploy complete.
+
+### Discord Block Alerts
+
+`alertBlock()` in `src/server.js` posts to a Discord webhook (`DISCORD_BLOCK_WEBHOOK`) when a fetched page matches a bot-block signature. From `agentGuidance/guidance/discord-integration.md`:
+
+- **Keep alerting opt-in and fail-open.** Posting is skipped entirely when the env var is unset, and the POST is wrapped in `try/catch` so a webhook failure only logs. Never couple a `/fetch` response to Discord being reachable, and don't add unconditional posting to other code paths — external posting stays behind an explicit opt-in.
+- **Discord messages are capped at 2000 characters** (embed descriptions at 4096). The alert body interpolates the target URL, so a pathological URL pushes the payload over the cap; Discord rejects the whole message with a 400 and the `catch` swallows it, so the alert is silently lost. Truncate interpolated values (URL, reason) before building the payload.
+- **Keep the per-domain cooldown.** One alert per domain per hour. A block that repeats on every request would otherwise flood the channel and get rate-limited by Discord, burying the first (useful) alert.
