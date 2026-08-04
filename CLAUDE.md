@@ -32,6 +32,8 @@ node src/index.js <url>
   --wait <ms>             Extra settle time after networkidle (default: 2000)
   --timeout <ms>          Navigation timeout (default: 30000)
   --compact               Compact JSON output
+  --real-chrome            Use real headed Google Chrome with a persistent profile (auto-wraps in xvfb-run when there's no X display). Bypasses enterprise bot walls (DataDome/PerimeterX) that hard-block headless Chromium; `--stealth` is not sufficient for these. CLI only — not wired into the HTTP proxy.
+  --profile-dir <path>     Profile directory for --real-chrome (default: ~/.cache/page-reader/chrome-profile)
 ```
 
 ## HTTP Proxy Server (`src/server.js`)
