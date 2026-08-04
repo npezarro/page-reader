@@ -24,13 +24,18 @@ export async function readPage(url, options = {}) {
     screenshot = false,
     stealth = false,
     storageState = undefined,
+    realChrome = false,
+    profileDir = undefined,
   } = options;
 
   const startTime = Date.now();
   let browser;
+  let persistentContext;
 
   try {
-    browser = await chromium.launch({ headless: true });
+    if (!realChrome) {
+      browser = await chromium.launch({ headless: true });
+    }
 
     const contextOptions = {
       viewport: { width: 1280, height: 800 },
@@ -59,7 +64,33 @@ export async function readPage(url, options = {}) {
       contextOptions.timezoneId = 'America/Los_Angeles';
     }
 
-    const context = await browser.newContext(contextOptions);
+    // Real-Chrome mode: genuine Google Chrome, headed, with a persistent profile.
+    // Headless Chromium is hard-blocked by enterprise bot vendors (DataDome
+    // returns `hard_block` on XHR); real headed Chrome gets the solvable
+    // `device_check_invisible` challenge instead and clears it by itself.
+    // Requires an X display — run under `xvfb-run -a` on a headless host.
+    let context;
+    if (realChrome) {
+      const dir =
+        profileDir ||
+        `${process.env.HOME || '/tmp'}/.cache/page-reader/chrome-profile`;
+      persistentContext = await chromium.launchPersistentContext(dir, {
+        channel: 'chrome',
+        headless: false,
+        ...contextOptions,
+        // A real Chrome UA is supplied by the browser itself; overriding it with
+        // a mismatched string is exactly the inconsistency the vendors look for.
+        userAgent: undefined,
+        args: [
+          '--disable-blink-features=AutomationControlled',
+          '--no-first-run',
+          '--no-default-browser-check',
+        ],
+      });
+      context = persistentContext;
+    } else {
+      context = await browser.newContext(contextOptions);
+    }
 
     if (stealth) {
       // Remove navigator.webdriver flag that reveals automation
@@ -68,7 +99,9 @@ export async function readPage(url, options = {}) {
       });
     }
 
-    const page = await context.newPage();
+    const page = realChrome
+      ? context.pages()[0] || (await context.newPage())
+      : await context.newPage();
 
     // Navigate — stealth uses domcontentloaded to avoid waiting on
     // analytics/tracking requests that may never resolve when blocked
@@ -173,6 +206,9 @@ export async function readPage(url, options = {}) {
       ...(screenshotData && { screenshot: screenshotData }),
     };
   } finally {
+    if (persistentContext) {
+      await persistentContext.close();
+    }
     if (browser) {
       await browser.close();
     }
