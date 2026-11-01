@@ -116,3 +116,11 @@ From `agentGuidance/guidance/browser-page-reader.md`. Applies to `BLOCK_PATTERNS
 - **Conclusive challenge markers** (only present on challenge pages): `__cf_chl_`, `cf_chl_opt` / `window._cf_chl_opt`, `_Incapsula_Resource`, `geo.captcha-delivery.com`, and the `cf-mitigated` response header. Treat these as blocked at any status, since a managed challenge can answer 200.
 - **Measure visible text, not raw byte length.** A challenge page is a large JS payload around one sentence. Strip script/style/noscript and tags and collapse whitespace before any length check.
 - **Do not loop diagnostics against a live target.** Repeated headless loads through one path can flip a page from served to challenged via behavioural scoring. Keep intervals long and reuse a per-host result instead of re-probing.
+
+### Test Practice
+
+From `agentGuidance/guidance/testing.md`:
+
+- **Bug fixes get a regression test, and prove it discriminates.** Write a test that fails without the fix and passes with it. Before trusting it, stash only the source change (keep the test), run it, and confirm it fails at the branch you meant to exercise. A test whose input matches an earlier check (for example a hostname suffix rule) passes on buggy code because the faulty branch never runs.
+- **`isInternalHost()` is a regex/prefix security boundary, so test its anchors.** Plain valid/invalid inputs pass even when a `^` or `$` is dropped. Include valid-shaped addresses embedded in a longer string (for example `10.0.0.1.example.com`, an IPv6 literal that merely contains `fe80:` mid-string, or a `::ffff:` mapping with a trailing suffix) with explicit expected results, so removing any anchor fails a test.
+- **Mock at boundaries, not the unit under test.** Feed `extractor.js` / `signals.js` saved HTML fixtures rather than live sites, and keep live-browser coverage in `reader.test.js` minimal, since repeated headless loads can flip a target into serving a challenge page.
